@@ -4,6 +4,8 @@
 Created on Wed Feb 26 19:01:55 2020
 
 @author: pmazumdar
+
+Task : remove dimensions from fits files and write to a new file with modified headers
 """
 
 from astropy.io import fits
