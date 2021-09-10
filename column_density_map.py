@@ -4,6 +4,8 @@
 Created on Wed Oct  7 12:40:24 2020
 
 @author: pmazumdar
+
+Task: create a column density cube given optical depths and excitation temperature
 """
 from astropy.io import fits
 from astropy import wcs
