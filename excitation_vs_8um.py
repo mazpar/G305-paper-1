@@ -1,3 +1,14 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Feb 12 16:30:39 2021
+
+@author: pmazumdar
+
+Task: Multiple analyses based on relation between
+      the excitation properties and 8um flux.
+"""
+
 #=======================================================================================================================
 #                             Plot the 8um Map with 12CO integrated intensity contours                                  
 #=======================================================================================================================
