@@ -1,0 +1,60 @@
+!!
+!! Compute integrated spectra from a data cube
+!!
+
+!define image t13 "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_13CO_resample.lmv" read
+define image t13 "/home/pmazumdar/Documents/LASMA/Reduction/datacubes/G346/lmv_maps/G346_12CO32-ext.lmv" read
+
+!! create an instance of the datafile to write to.
+sic output "/home/pmazumdar/Documents/LASMA/Reduction/datacubes/G346/lmv_maps/G346_12CO_spectrum.dat"
+
+let nx t13%dim[1] /new int  ! Read number of x-pixels
+let ny t13%dim[2] /new int  ! Read number of y-pixels
+let nchan t13%dim[3] /new int  ! Read number of channels
+let velres t13%velres /new double ! Read the velocity resolution
+let refchan t13%convert[1,3] /new real ! Read the reference channel number
+let vref t13%convert[2,3] /new real  ! Read ref channel velocity
+
+!! Defining Velocity for each channel
+define real vel[nchan]
+for v 1 to nchan
+  let vel[v] vref+((v-refchan)*velres)
+  next
+
+let sumup 0 /new double
+let sumdown 0 /new double
+let counter 0 /new int
+
+for k 1 to nchan  !! Loop over channels
+  let sumup 0
+  let sumdown 0
+  for i 1 to nx
+    for j 1 to ny !! Loop over pixels
+        let sumup sumup+t13[i,j,k]
+        next
+    next
+  say 'vel[k]' 'sumup/(nx*ny)'
+  next
+
+
+!!
+!! plot the integrated spectrum
+!!
+
+g\column x 1 y 2 /file "G305_12CO_spectrum.dat
+g\set plot landscape
+g\set font simplex
+g\limits
+g\box
+g\label "LSR Velocity [km.s\U-\U1]" /X 3
+g\label "T\DA\U* [K]" /Y 4
+g\histogram
+g\column x 1 y 2 /file "G305_13CO_spectrum.dat"
+g\pen /col blue
+define real y_s /like y
+let y_s y*3
+histo x y_s
+g\draw text -3 6 "\U1\U3CO (3-2) X 3" /box 6
+g\pen /col 0
+g\draw text -3 7 "\U1\U2CO (3-2)" /box 6
+g\hardcopy ./plots/spectrum.eps /over

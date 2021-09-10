@@ -1,0 +1,77 @@
+!!!!!!!!!!! Excitation Temperature Map !!!!!!!!!
+
+!! Create a copy of the file
+sic copy "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_12CO_resample_smooth.fits.gdf" "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/temp_12_smooth.lmv"
+
+!! Open the output file to write in
+define image cube "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/temp_12_smooth.lmv" write
+
+!! Load spectral cube
+define image t12 "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_12CO_resample_smooth.fits.gdf" read
+
+!! Load Noise Maps to set noise threshold for each pixel
+define image noise13 "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_13CO_resample_smooth.noise" read
+define image noise12 "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_12CO_resample_smooth.noise" read
+
+!!Beginning of code
+let nx cube%dim[1] /new int  ! Read number of x-pixels
+let ny cube%dim[2] /new int  ! Read number of y-pixels
+let nchan cube%dim[3] /new int  ! Read number of channels
+
+
+let counter 0 /new int
+for i 1 to nx
+  for j 1 to ny
+    for k 2 to 'nchan-1'
+      if t12[i,j,k].gt.5*noise12[i,j,1].and.t12[i,j,'k+1'].gt.5*noise12[i,j,1].and.t12[i,j,'k-1'].gt.5*noise12[i,j,1] then
+        let cube[i,j,k] 16.6/(log(1+(16.6/((cube[i,j,k]/0.74)+0.04))))  ! equation 3
+        let counter = counter+1
+      else
+        let cube[i,j,k] 0
+        let counter = counter+1
+      endif
+      say '100*counter/(nx*ny*nchan)'
+      next
+    next
+  next
+  
+sic\delete /variable nx ny nchan counter !! delete all variables
+sic \delete /variable cube
+
+
+!!!!!!!!!!! Optical Depth Map !!!!!!!!!!!!!
+
+
+!! Create a copy of the file
+sic copy "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_12CO_resample_smooth.fits.gdf" "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/tau_smooth.lmv"
+
+!! Open the file to write output
+define image cube "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/tau_smooth.lmv" write
+
+!! Load spectral cubes
+define image t13 "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_13CO_resample_smooth.fits.gdf" read
+define image tex "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/temp_12_smooth.lmv" read
+
+
+let nx cube%dim[1] /new int  ! Read number of x-pixels
+let ny cube%dim[2] /new int  ! Read number of y-pixels
+let nchan cube%dim[3] /new int  ! Read number of channels
+
+let counter 0 /new int
+for i 1 to nx
+  for j 1 to ny
+    for k 2 to nchan-1
+      if t13[i,j,k].gt.5*noise13[i,j,1].and.t13[i,j,'k+1'].gt.5*noise13[i,j,1].and.t13[i,j,'k-1'].gt.5*noise13[i,j,1] then
+        let cube[i,j,k] -log(1-((t13[i,j,k]/(0.74*15.9))*(1/((1/(exp((0.74*15.9)/tex[i,j,k])-1))-(0.0028)))))
+        let counter = counter+1
+      else
+        let cube[i,j,k] 0
+        let counter = counter+1
+      endif
+      say '100*counter/(nx*ny*nchan)'
+      next
+    next
+  next
+
+sic\delete /variable nx ny nchan counter !! delete all variables
+sic \delete /variable cube
