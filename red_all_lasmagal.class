@@ -1,0 +1,210 @@
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! This script reduces the sub-maps.                                      !!
+!!                                                                        !!
+!! run @red_all_lasgmagal.class [1 or 2] [source_name]                    !!
+!!                                                                        !!
+!!    &1 : 1 for 13CO32 and 2 for 12CO32                                  !!
+!!    &2 : Source Name [Lookup Info File]                                 !!
+!!    &3 : Source Off Position Name [Lookup Info File]                    !!
+!!                                                                        !!
+!!                                                                        !!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+
+!!
+!! Extract the relevant class files
+!!
+sys "ls -1 /diskc/pmazumdar/scidata/*.apex > files.dat" 
+sys "wc files.dat > wc.log"
+col x 1 /file wc.log
+let nfiles x[1] /new int   !! Count number of files (days of observation)
+def char files*80[nfiles]
+accept files /col files.dat  !! Read the names of apex files
+exa files
+
+!!
+!! Declare variables
+!!
+
+def char pix*10[7]
+!def char pix*10[6] ! for pixel 6 exclusion
+def int npix
+def char src*50               
+def char suf*50
+!def char my_scan*10
+!def char my_src*25[4]      !!!! TO DO: A list of source names to create maps per source ; find out which days are G305 and remove those names 
+def char my_src*25
+def char my_off*25     !!!! Off source name
+def double my_freq
+
+
+!let nsources 4 /new int
+let nsources 1 /new int
+let npix 7
+
+!!
+!! Assign Variables
+!!
+!let src G305 !! For G305
+!let src G346 !! For Galactic Bar
+let src &2
+let my_off &3
+
+!!
+!! Define Center of Projection
+!!
+!let my_src G305.25+0.25 G305.25-0.25 G305.75+0.25 G305.75-0.25  !! For G305
+!let lambda0 (3.453832056771578*180/PI)/15.0 /new double
+!let beta0 -1.091373773819298*180/PI /new double
+
+let my_src G346.25+0.25 G346.25-0.25 G345.75+0.25 G345.75-0.25  !! For Galactic Bar
+let lambda0 (4.491008509179636*180/PI)/15.0 /new double
+let beta0 -0.7069262209730590*180/PI /new double
+
+!let my_src 'src'
+
+!!
+!! Selecting between 13/12 CO
+!!
+if &1.eq.1 then
+    let suf "_13CO"
+    let pix 01 02 03 04 05 06 07
+ !!   let pix 01 02 03 04 05 07  !! Exclude Pixel 6
+    let my_freq 330587.949
+else if &1.eq.2 then
+    let suf "_12CO"
+    let pix 08 09 10 11 12 13 14
+!!    let pix 08 09 10 11 12 14  !! Exclude Pixel 6
+    let my_freq 345795.990
+endif
+
+
+set def  !! set class to default
+
+
+file out "/diskc/pmazumdar/temp/temp"'src''suf'".dat" single /over  !! temporary file to write the spectra
+
+!!file out "/diskc/pmazumdar/temp/temp"'src''suf'"_no6.dat" single /over  !! temporary file to write the spectra
+
+
+!!
+!! List of scans to ignore  (LIST UPDATED)
+!!
+sys "wc -l bad_scan_list.txt > bad_scans.log"
+col y 1 /file bad_scans.log
+sys "rm -f bad_scans.log"
+let n_bad y[1] /new int
+def int bad_scans[n_bad]
+accept bad_scans /col bad_scan_list.txt
+exa bad_scans
+
+
+
+!!!!! Load OFF Spectra to be added !!!!
+!for koff 1 to nfiles  !! LOOP 1 (Over files)
+!	file in 'files[koff]'
+!	for toff 1 to npix  !! LOOP 2 (over Pixels)			
+!		find /source 'my_off' /tel AP-L3'pix[toff]'*
+!		if found.gt.0 then!! LOOP over relevant Obs
+!			average
+!			modif freq 'my_freq'
+!            set unit v f
+!            set win -190 20
+!			base 2
+!			memorize off_'pix[toff]'
+!		endif
+!		next
+!	next
+			
+
+
+!!
+!! Beginning of Reduction
+!!
+
+for l 1 to nsources  !! LOOP 1 (Over Sources)
+    for k 1 to nfiles  !! LOOP 2 (Over files)
+        file in 'files[k]'
+        for m 1 to n_bad
+            ignore /scan 'bad_scans[m]'  !! Ignore the bad scans
+            next
+        for i 1 to npix  !! LOOP 3 (over Pixels)			
+            !!find /source 'my_src[l]' /tel AP-L3'pix[i]'*    
+            find /source 'src' /tel AP-L3'pix[i]'*
+            for j 1 to found  !! LOOP 4 (Over relevant observations)
+				!retrieve off_'pix[i]'  !! retrieve off spectra from the memory
+                get next
+				!accumulate /nocheck /weight equal !! Add the off spectra back
+                if tsys.ne.0 then
+                    modif freq 'my_freq'
+                    set unit v f
+                    !resample 1500 750 -25 -0.1 velocity tbox /nofft
+                    !resample 600 300 -80 -0.5 velocity tbox /nofft      !!!! from -230km/s to 70 km/s centered on -80km/s at res 0.5km/s
+					if &1.eq.2 then
+	                    set win -210 30 80 120 ! G346.00+0.00
+					else if &1.eq.1 then
+						!!set win -110 -70 -40 -10 80 120 ! G347.75
+						!!set win -120 -55 -30 20 80 120 ! G348.25
+						!!set win -80 -50 -40 0 80 120 ! G348.75
+						set win -120 10 80 120 ! G348.75
+					else
+						say "<<<<<<<<<<<<<<<<<INPUT ERROR>>>>>>>>>>>>>>>>>>"
+						say " Please enter a valid first argument (1 or 2)"
+					endif
+                    base 4
+                    modif source 'src'
+                    modif pos 'lambda0' 'beta0'
+		    		resample 800 240 0.0 -0.5 velocity tbox /nofft      !!!! from -230km/s to 70 km/s centered on 0km/s at res 0.5km/s
+                    write
+                    endif
+                next !! EXIT LOOP 4
+            next  !! EXIT LOOP 3
+        next  !! EXIT LOOP 2
+    next  !! EXIT LOOP 1
+
+    
+
+!!
+!! Making the GILDAS Table and the LMV maps
+!!
+set sys gal
+
+file in "/diskc/pmazumdar/temp/temp"'src''suf'".dat"
+!!file in "/diskc/pmazumdar/temp/temp"'src''suf'"_no6.dat"
+
+find /all
+
+table "/diskc/pmazumdar/LASMA/Reduction/class_tables/"'src''suf'".tab" new
+
+xy_map "/diskc/pmazumdar/LASMA/Reduction/class_tables/"'src''suf'".tab"  "/diskc/pmazumdar/LASMA/Reduction/lmv_cubes/"'src''suf'".lmv" /type lmv
+!!xy_map "/diskc/pmazumdar/LASMA/Reduction/class_tables/"'src''suf'".tab"  "/diskc/pmazumdar/LASMA/Reduction/lmv_cubes_no6/"'src''suf'".lmv" /type lmv
+
+!sys "mv /aux/pc28042a/pmazumdar/LASMA/Reduction/class_tables/*.lmv /aux/pc28042a/pmazumdar/LASMA/Reduction//lmv_cubes/"
+
+!! View the maps
+!let name "/aux/pc28042a/pmazumdar/LASMA/Reduction/class_tables/"'src''suf'
+!let type lmv
+!go view
+!pause
+
+
+!! hardcopy "../saved_plots/"'src''suf'".eps" /overwrite  !! Save figure
+
+!!
+!! Delete variables
+!!
+delete /var src
+delete /var suf
+delete /var pix
+delete /var npix
+delete /var my_src
+delete /var nfiles
+delete /var files
+delete /var nsources
+delete /var n_bad
+delete /var bad_scans
+!delete /var lambda0
+!delete /var beta0
+delete /var my_freq
+memorize * /delete

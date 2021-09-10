@@ -1,0 +1,59 @@
+! noise maps
+
+!sic copy "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_13CO.mean" "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_12CO.noise"
+!sic copy "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_12CO_resample_smooth.mean" "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_13CO_resample_smooth.noise"
+sic copy "/home/pmazumdar/Documents/LASMA/Reduction/lmv_maps/Moment_Maps/G345.25_12CO.sum" "/home/pmazumdar/Documents/LASMA/Reduction/lmv_maps/Moment_Maps/G345.25_12CO.noise"
+
+!define image cube "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_13CO_resample_smooth.noise" write
+!define image t13 "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_13CO_resample_smooth.fits.gdf" read
+
+define image cube "/home/pmazumdar/Documents/LASMA/Reduction/lmv_maps/Moment_Maps/G345.25_12CO.noise" write
+define image t13 "/home/pmazumdar/Documents/LASMA/Reduction/lmv_maps/G345.25_12CO.lmv" read
+
+let nx t13%dim[1] /new int  ! Read number of x-pixels
+let ny t13%dim[2] /new int  ! Read number of y-pixels
+
+let nchan 100 /new int  ! Read number of channels 13CO
+!let nchan 10 /new int  ! Read number of channels 12CO
+
+
+define real spectra[nchan] chan[nchan] t_ext[nx,ny,nchan] noi[nx,ny]
+let pixel_noise 0 /new double
+let counter 0 /new int
+!let chan 141 142 143 144 145 146 147 148 149 150   ! channels for 12CO
+
+for i 1 to nx
+  for j 1 to ny
+    for k 1 to nchan
+      if t13[i,j,'20+k'].gt.-100 then
+	      let t_ext[i,j,k] t13[i,j,'20+k']        ! For 13CO
+	  else
+	      let t_ext[i,j,k] 0
+	  endif
+!      let t_ext[i,j,k] t13[i,j,'chan[k]']  ! For 12CO
+      next
+    let counter counter+1
+    say 'counter*100./(nx*ny)'
+    next
+  next
+
+
+
+
+!! Compute the rms in the channels
+sic\compute noi RMS t_ext
+for x 1 to nx
+  for y 1 to ny
+    let cube[x,y,1] noi[x,y]
+    next
+  next
+
+!! Plot the noise map
+cl pl
+!let name "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_13CO_resample_smooth"
+!let name "/home/pmazumdar/Documents/LASMA/Reduction/datacubes/G346/lmv_maps/G346_12CO"
+!let type noise
+!let do_contour no
+!let scale 0.1 10
+!go nice
+
