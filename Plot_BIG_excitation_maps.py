@@ -1,3 +1,11 @@
+"""
+Created on Tue Aug 25 15:03:59 2020
+
+@author: pmazumdar
+
+Task: Plotting Excitation Maps
+"""
+
 import aplpy
 import matplotlib.pyplot as plt
 import numpy as np
