@@ -1,0 +1,51 @@
+!! moment 1 and 2 maps
+
+define image t13 "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_13CO_resample.lmv" read
+define image noise "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_13CO.noise" read
+
+!create an instance of the map to write to.
+sic copy "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_13CO.mean" "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_13CO_mom_1.gdf"
+sic copy "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_13CO.mean" "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_13CO_mom_2.gdf"
+define image cube1 "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_13CO_mom_1.gdf" write
+define image cube2 "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_13CO_mom_2.gdf" write
+
+let nx t13%dim[1] /new int  ! Read number of x-pixels
+let ny t13%dim[2] /new int  ! Read number of y-pixels
+let nchan t13%dim[3] /new int  ! Read number of channels
+let velres t13%velres /new double ! Read the velocity resolution
+let refchan t13%convert[1,3] /new real ! Read the reference channel number
+let vref t13%convert[2,3] /new real  ! Read ref channel velocity
+
+!! Defining Velocity for each channel
+define real vel[nchan]
+for v 1 to nchan
+  let vel[v] vref+((v-refchan)*velres)
+  next
+
+let sum1 0 /new double
+let sum2 0 /new double
+let sumdown 0 /new double
+let counter 0 /new int
+
+for i 1 to nx  !! Loop over pixels
+  for j 1 to ny
+    let sum1 0
+    let sum2 0
+    for k 1 to nchan !! Loop over Channels
+      if t13[i,j,k].gt.5*noise[i,j,1] then  !! Only add pixels with significant emissions.
+        let sum1 sum1+(t13[i,j,k]*vel[k]*abs(velres))
+        let sum2 sum2+(t13[i,j,k]*vel[k]*vel[k]*abs(velres))
+        let sumdown sumdown+(t13[i,j,k]*abs(velres))
+      endif
+      next
+    if sumdown.gt.0 then
+      let cube1[i,j,1] sum1
+      let cube2[i,j,1] sum2
+    else
+      let cube1[i,j,1] 0  !! Blanking to 0
+      let cube2[i,j,1] 0
+    endif
+    let counter counter+1
+    say '100*counter/(nx*ny)'  !! Keep track of progress
+    next
+  next

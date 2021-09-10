@@ -1,0 +1,49 @@
+!! moment 0 maps
+
+!define image t13 "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_12CO_resample.lmv" read
+!define image noise "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_12CO.noise" read
+
+!define image t13 "/home/pmazumdar/Documents/LASMA/Reduction/datacubes/G346/lmv_maps/G346_13CO32.lmv" read
+!define image noise "/home/pmazumdar/Documents/LASMA/Reduction/datacubes/G346/lmv_maps/G346_13CO.noise" read
+
+define image t13 "/home/pmazumdar/Documents/LASMA/Reduction/lmv_maps/G346.75+0.25_12CO.lmv" read
+define image noise "/home/pmazumdar/Documents/LASMA/Reduction/lmv_maps/Moment_Maps/G346.75+0.25_12CO.noise" read
+
+!create an instance of the map to write to.
+!sic copy "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_13CO.mean" "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_12CO_mom_0.gdf"
+!define image cube "/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/G305_12CO_mom_0.gdf" write
+
+sic copy "/home/pmazumdar/Documents/LASMA/Reduction/lmv_maps/Moment_Maps/G346.75+0.25_12CO.sum" "/home/pmazumdar/Documents/LASMA/Reduction/lmv_maps/Moment_Maps/G346.75+0.25_12CO_mom-0.gdf"
+define image cube "/home/pmazumdar/Documents/LASMA/Reduction/lmv_maps/Moment_Maps/G346.75+0.25_12CO_mom-0.gdf" write
+
+
+
+let nx t13%dim[1] /new int  ! Read number of x-pixels
+let ny t13%dim[2] /new int  ! Read number of y-pixels
+let nchan t13%dim[3] /new int  ! Read number of channels
+let velres t13%velres /new double ! Read the velocity resolution
+
+let sumup 0 /new double
+let sumdown 0 /new double
+let counter 0 /new int
+
+
+for i 1 to nx  !! Loop over pixels
+  for j 1 to ny
+    let sumup 0
+    for k 2 to 'nchan-1' !! Loop over Channels
+    !for k 200 to 500 !! Loop over Channels
+		if t13[i,j,k].gt.3*noise[i,j,1].and.t13[i,j,'k+1'].gt.3*noise[i,j,1].and.t13[i,j,'k-1'].gt.3*noise[i,j,1] then  !! Only add pixels with significant emissions.
+      !if t13[i,j,k].gt.2*noise[i,j,1] then  !! Only add pixels with significant emissions.
+			let sumup sumup+(t13[i,j,k]*abs(velres))
+		endif
+	next
+    if sumup.gt.0 then
+      let cube[i,j,1] sumup
+    else
+      let cube[i,j,1] 0  !! Blanking to 0
+    endif
+    let counter counter+1
+    say '100*counter/(nx*ny)'  !! Keep track of progress
+    next
+  next
