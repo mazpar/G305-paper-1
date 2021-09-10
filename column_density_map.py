@@ -12,14 +12,17 @@ from astropy import wcs
 import numpy as np
 import aplpy
 
+#load data
 #T_map = fits.open('/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/temp_12.fits')[0]
 T_map = fits.open('/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/temp.fits')[0]
 tau_map = fits.open('/home/pmazumdar/Documents/LASMA/Reduction/class_maps/temp/tau.fits')[0]
 
+# nan removal
 T_data = T_map.data
 T_data[np.isnan(T_data)] = 0.0
 T_data[T_data<0] = 0.0
 
+# header and wcs for the new file
 hd = T_map.header
 w = wcs.WCS(T_map.header)
 
@@ -27,7 +30,7 @@ tau_data = tau_map.data
 tau_data[np.isnan(tau_data)] = 0.0
 tau_data[tau_data<0] = 0.0
 
-
+# constants
 h = 6.62607004e-34
 nu = 330.5880e9
 k_B = 1.38064852e-23
@@ -35,7 +38,7 @@ factor = 1.1037108322258952e+25 #(8*pi/c**3)*(g2/g3)*(nu**3/A_32); velocity take
 k_hb = 0.3550599734823035 # k_B/h*B value in K^-1
 vres = 0.5
 
-
+# column density calculation
 n13_data = 1e-10*((factor*(1/(1-np.exp((-h*nu)/(k_B*T_data))))*(tau_data*abs(vres))))
 
 z = k_hb*(T_data+(1/(3*k_hb)))  # calculate the partition function for each voxel
@@ -45,6 +48,7 @@ ntot_data = n13_data*(z/5)*np.exp(6/(T_data*k_hb))
 ntot_data[np.isnan(ntot_data)] = 0.0
 ntot_data[ntot_data<0.0] = 0.0
 
+# header for the new fits file
 nhd = fits.PrimaryHDU(np.zeros([hd['NAXIS3'],hd['NAXIS2'],hd['NAXIS1']])).header
 dimlist = ['1','2','3']
 
